@@ -87,6 +87,7 @@ Instruction decode_instruction(uint16_t raw_instruction) {
 }
 
 void execute(CPU *cpu, Instruction inst) {
+    cpu->registers[0] = 0;
     switch (inst.opcode) {
         case OPCODE_NOP:
             // No operation: do nothing
@@ -238,6 +239,7 @@ void execute(CPU *cpu, Instruction inst) {
             // Invalid opcode, handle error if necessary
             break;
     }
+    cpu->registers[0] = 0;
 }
 
 void run(CPU *cpu){
@@ -301,9 +303,10 @@ void load_program(const char *filename, CPU *cpu) {
 void print_registers(CPU *cpu) {
     printf("Registers:\n");
     for (int i = 0; i < 16; i++) {
-        printf("R%d: 0x%02X\n", i, cpu->registers[i]);  // Print register value in hexadecimal
+        printf("R%d: %d\n", i, cpu->registers[i]);  // Print register value in decimal
     }
 }
+
 
 int main() {
     CPU cpu = {0};
