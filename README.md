@@ -14,19 +14,16 @@ I highly recommend checking out his YouTube channel, as he offers educational an
 
 Thank you, Mattbatwings!
 
-
-### Key Features:
-- [BatPU-2](https://github.com/mattbatwings/BatPU-2) CPU
-- RAM
-- Peripherals
-
 ## How to use:
 1. Clone this repository
 ```bash 
 git clone https://github.com/elrocs/BatPU-2-Virtual-Machine.git
 ```
+2. Write an assembly program named "program.as" in root directory. 
 
-2. Run `make`
+3. Clone the assembler found in [BatPU-2 repo](https://github.com/mattbatwings/BatPU-2) into assembler/ folder.
+
+3. Run `make`
 
 ## Current Status
 
