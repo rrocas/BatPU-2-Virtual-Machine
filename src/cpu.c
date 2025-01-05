@@ -15,11 +15,13 @@ typedef struct {
 
 // Represents a decoded instruction.
 typedef struct {
-    uint16_t opcode; // Operation code
-    uint8_t regA;    // First register
-    uint8_t regB;    // Second register
-    uint8_t regC;    // Third register
-    uint8_t imm;     // Immediate value
+    unsigned int opcode : 4;   // Operation code (4 bits)
+    unsigned int regA : 4;     // First register (4 bits)
+    unsigned int regB : 4;     // Second register (4 bits)
+    unsigned int regC : 4;     // Third register (4 bits) *used as Offset when LOD/STR
+    uint8_t imm;               // Immediate value (8 bits)
+    unsigned int cond : 2;     // Branch condition (2 bits)
+    unsigned int address : 10; // Instruction address (Instruction Memory) (10 bits)
 } Instruction;
 
 // Defines all supported opcodes.
@@ -38,9 +40,17 @@ typedef enum {
     OPCODE_BRH = 0x0B,  // Conditional branch
     OPCODE_CAL = 0x0C,  // Call subroutine
     OPCODE_RET = 0x0D,  // Return from subroutine
-    OPCODE_LOD = 0x0E,  // Load memory -> regA
-    OPCODE_STR = 0x0F   // Store regA -> memory
+    // OPCODE_LOD = 0x0E,  // Load memory -> regA
+    // OPCODE_STR = 0x0F   // Store regA -> memory
 } Opcode;
+
+// Branch conditions
+typedef enum {
+    ZERO_TRUE = 0x00, 
+    ZERO_FALSE = 0x01,
+    CARRY_TRUE = 0x02,
+    CARRY_FALSE = 0x03
+} Condition;
 
 // Define the CPU struct
 typedef struct {
@@ -72,16 +82,18 @@ uint16_t pop(CPU *cpu) {
 }
 
 /*
- * Decodes a 16-bit raw instruction into its components (opcode, registers, immediate).
+ * Decodes a 16-bit raw instruction into its components (opcode, registers, immediate, condition and address).
  */
 Instruction decode_instruction(uint16_t raw_instruction) {
     Instruction inst;
 
-    inst.opcode = (raw_instruction >> 12) & 0x0F; // Top 4 bits: opcode
-    inst.regA = (raw_instruction >> 8) & 0x0F;    // Next 4 bits: regA
-    inst.regB = (raw_instruction >> 4) & 0x0F;    // Next 4 bits: regB
-    inst.regC = raw_instruction & 0x0F;           // Last 4 bits: regC
-    inst.imm = (uint8_t)(raw_instruction & 0xFF); // Last 8 bits: immediate value
+    inst.opcode = (raw_instruction >> 12) & 0x0F; // pos: 1111 0000 0000 0000 Operation Code
+    inst.regA = (raw_instruction >> 8) & 0x0F;    // pos: 0000 1111 0000 0000 Register A
+    inst.regB = (raw_instruction >> 4) & 0x0F;    // pos: 0000 0000 1111 0000 Register B
+    inst.regC = raw_instruction & 0x0F;           // pos: 0000 0000 0000 1111 Register C
+    inst.imm = (uint8_t)(raw_instruction & 0xFF); // pos: 0000 0000 1111 1111 Immediate
+    inst.cond = (raw_instruction >> 10) & 0x03;   // pos: 0000 1100 0000 0000 Branch condition
+    inst.address = raw_instruction & 0x03FF;        // pos: 0000 0011 1111 1111 Instruction address
 
     return inst;
 }
@@ -177,7 +189,7 @@ void execute(CPU *cpu, Instruction inst) {
                 // Load Immediate: regA = imm
                 cpu->registers[inst.regA] = inst.imm;
                 // Update flags
-                cpu->flags.zero = (cpu->registers[inst.regA] == 0);
+                cpu->flags.zero = false; // Load immediate doesn't affect zero
                 cpu->flags.carry = false;  // Load immediate doesn't affect carry
 
                 cpu->program_counter++; // Increment the program counter
@@ -203,9 +215,50 @@ void execute(CPU *cpu, Instruction inst) {
             break;
 
         case OPCODE_BRH:
-            // Branch: if the zero flag is set, jump to the immediate address
-            if (cpu->flags.zero) {  // Check zero flag
-                cpu->program_counter = inst.imm;
+            // Branch operation: conditionally update the program counter based on the flag status
+            {
+                // Evaluate the condition specified in the instruction
+                switch (inst.cond) {
+                    case ZERO_TRUE:
+                        // Jump if the zero flag is set
+                        if (cpu->flags.zero) {
+                            cpu->program_counter = inst.address;  // Set program counter to the specified address
+                        } else {
+                            cpu->program_counter++; // Increment the program counter
+                        }
+                        break;
+
+                    case ZERO_FALSE:
+                        // Jump if the zero flag is not set
+                        if (!cpu->flags.zero) {
+                            cpu->program_counter = inst.address;  // Set program counter to the specified address
+                        } else {
+                            cpu->program_counter++; // Increment the program counter
+                        }
+                        break;
+
+                    case CARRY_TRUE:
+                        // Jump if the carry flag is set
+                        if (cpu->flags.carry) {
+                            cpu->program_counter = inst.address;  // Set program counter to the specified address
+                        } else {
+                            cpu->program_counter++; // Increment the program counter
+                        }
+                        break;
+
+                    case CARRY_FALSE:
+                        // Jump if the carry flag is not set
+                        if (!cpu->flags.carry) {
+                            cpu->program_counter = inst.address;  // Set program counter to the specified address
+                        } else {
+                            cpu->program_counter++; // Increment the program counter
+                        }
+                        break;
+
+                    default:
+                        // Invalid condition: no action taken
+                        break;
+                }
             }
             break;
 
@@ -217,22 +270,8 @@ void execute(CPU *cpu, Instruction inst) {
             break;
 
         case OPCODE_RET:
-            // Pop the return address from the stack and set it to the program counter
-            cpu->program_counter = pop(cpu);
-            break;
-
-        case OPCODE_LOD:
-            // Memory Load: regA = memory[regB]
-            cpu->registers[inst.regA] = cpu->instruction_memory[cpu->registers[inst.regB]];
-
-            cpu->program_counter++; // Increment the program counter
-            break;
-
-        case OPCODE_STR:
-            // Memory Store: memory[regB] = regA
-            cpu->instruction_memory[cpu->registers[inst.regB]] = cpu->registers[inst.regA];
-
-            cpu->program_counter++; // Increment the program counter
+            // Pop the return address from the stack add one and set it to the program counter
+            cpu->program_counter = pop(cpu)+1;
             break;
 
         default:
