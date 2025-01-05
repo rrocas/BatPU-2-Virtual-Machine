@@ -21,7 +21,7 @@ git clone https://github.com/elrocs/BatPU-2-Virtual-Machine.git
 ```
 2. Write an assembly program named "program.as" in root directory. 
 
-3. Clone the assembler found in [BatPU-2 repo](https://github.com/mattbatwings/BatPU-2) into assembler/ folder.
+3. Clone the assembler found in [BatPU-2 repo](https://github.com/mattbatwings/BatPU-2) into `assembler/` folder.
 
 3. Run `make`
 
