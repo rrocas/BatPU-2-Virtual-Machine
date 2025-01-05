@@ -307,6 +307,12 @@ void print_registers(CPU *cpu) {
     }
 }
 
+// DEBUGGING PURPOSES ONLY, TEMPORARY FUNCTION
+void print_flags(CPU *cpu) {
+    printf("zero: %d\n", cpu->flags.zero);
+    printf("carry: %d\n", cpu->flags.carry);
+}
+
 
 int main() {
     CPU cpu = {0};
@@ -316,6 +322,7 @@ int main() {
     run(&cpu);
 
     print_registers(&cpu);
+    print_flags(&cpu);
 
     return 0;
 }
