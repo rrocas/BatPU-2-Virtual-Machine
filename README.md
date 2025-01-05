@@ -1,18 +1,32 @@
 # My First CPU Emulator in C
 
-Welcome to my first C program! This is an emulator for a simple CPU that I created as part of my learning process. It simulates a basic CPU architecture and can execute a set of operations.
+Welcome to my first C program! This is a virtual machine for the [BatPU-2](https://github.com/mattbatwings/BatPU-2) that I created as part of my learning process. It simulates RAM and the CPU architecture aswell as the display and input peripherals.
 
 ## About the Project
 
-This project is still in its very early development phase. It is a CPU emulator written in C that simulates a basic CPU's behavior, such as loading programs, performing arithmetic operations, branching, and handling memory. The CPU supports a range of opcodes for various operations like `ADD`, `SUB`, `AND`, `XOR`, and more.
+This project is still in its very early development phase. It is a Virtual Machine written in C that simulates 
+
+## Acknowledgements
+
+I want to take a special moment to thank **[Mattbatwings](https://www.youtube.com/@mattbatwings)** for his incredible work. His series of videos building a **CPU in Minecraft** has been an invaluable source of knowledge for me. Thanks to his tutorials, I've been able to better understand complex concepts related to processor architecture and low-level programming.
+
+I highly recommend checking out his YouTube channel, as he offers educational and entertaining content that has helped me a lot in my learning journey.
+
+Thank you, Mattbatwings!
+
 
 ### Key Features:
-- Basic CPU with 16 registers
-- Stack-based memory management
-- Program counter and flags (zero, carry)
-- Simple instruction set with various opcodes
-- Emulates instructions like `NOP`, `ADD`, `SUB`, `JMP`, `LDI`, and more
-- Can load and execute programs from a file
+- [BatPU-2](https://github.com/mattbatwings/BatPU-2) CPU
+- RAM
+- Peripherals
+
+## How to use:
+1. Clone this repository
+```bash 
+git clone https://github.com/elrocs/BatPU-2-Virtual-Machine.git
+```
+
+2. Run `make`
 
 ## Current Status
 
