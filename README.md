@@ -4,7 +4,7 @@ Welcome to my first C program! This is a virtual machine for the [BatPU-2](https
 
 ## About the Project
 
-This project is still in its very early development phase. It is a Virtual Machine written in C that simulates 
+This project is still in its very early development phase. It is a Virtual Machine written in C that simulates the mattbatwings' "BatPU-2" CPU and many other things like RAM.
 
 ## Acknowledgements
 
