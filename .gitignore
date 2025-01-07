@@ -1,5 +1,6 @@
 bin/
 build/
 .vscode/
+TODO.md
 program.as
 assembler.py
