@@ -6,8 +6,8 @@
 
 #include "cpu.h"
 
-// Call stack related functions
-void push(CPU *cpu, uint16_t value) {
+// Push instruction memory address into the call stack
+void push_stack(CPU *cpu, uint16_t value) {
     // Check if there is space left in the stack (stack pointer is within bounds)
     if (cpu->stack_pointer < STACK_SIZE) {
         // Store the value in the current position of the stack and increment the stack pointer
@@ -15,14 +15,27 @@ void push(CPU *cpu, uint16_t value) {
     }
 }
 
-uint16_t pop(CPU *cpu) {
+// Pop last address from the call stack
+uint16_t pop_stack(CPU *cpu) {
     // Check if there is something to pop (stack pointer is greater than 0)
     if (cpu->stack_pointer > 0) {
         // Return the value at the current top of the stack and decrement the stack pointer
-        return cpu->stack[--cpu->stack_pointer];
+        return cpu->stack[--cpu->stack_pointer]+1;
     }
     // If the stack is empty, return an error value (0xFFFF)
     return 0xFFFF;
+}
+
+// Write value into a register
+void write(CPU *cpu, uint8_t index, uint8_t value) {
+    index &= 0x0F; // Make sure index doesn't exceed 4 bits (16 total addresses)
+    cpu->registers[index] = value; // Asing value to the register
+}
+
+// Read value from register
+uint8_t read(CPU *cpu, uint8_t index) {
+    index &= 0x0F; // Make sure index doesn't exceed 4 bits (16 total addresses)
+    return cpu->registers[index];
 }
 
 /*
@@ -57,8 +70,9 @@ void execute(CPU *cpu, Instruction inst) {
         case OPCODE_ADD:
             // Addition: regC = regA + regB
             {
-                uint16_t result = cpu->registers[inst.regA] + cpu->registers[inst.regB];
-                cpu->registers[inst.regC] = (uint8_t)result;
+                uint16_t result = read(cpu, inst.regA) + read(cpu, inst.regB);
+                write(cpu, inst.regC, (uint8_t)result);
+
                 // Update flags
                 cpu->flags.zero = (cpu->registers[inst.regC] == 0);
                 cpu->flags.carry = (result > 0xFF);  // Carry flag is set if overflow occurs
@@ -70,8 +84,9 @@ void execute(CPU *cpu, Instruction inst) {
         case OPCODE_SUB:
             // Subtraction: regC = regA - regB
             {
-                int16_t result = (int8_t)cpu->registers[inst.regA] - (int8_t)cpu->registers[inst.regB];
-                cpu->registers[inst.regC] = (uint8_t)result;
+                uint16_t result = read(cpu, inst.regA) - read(cpu, inst.regB);
+                write(cpu, inst.regC, (uint8_t)result);
+
                 // Update flags
                 cpu->flags.zero = (cpu->registers[inst.regC] == 0);
                 cpu->flags.carry = (result < 0);  // Carry flag is set if there's a borrow
@@ -83,7 +98,9 @@ void execute(CPU *cpu, Instruction inst) {
         case OPCODE_NOR:
             // Bitwise NOR: regC = ~(regA | regB)
             {
-                cpu->registers[inst.regC] = ~(cpu->registers[inst.regA] | cpu->registers[inst.regB]);
+                uint8_t result = ~(read(cpu, inst.regA) | read(cpu, inst.regB));
+                write(cpu, inst.regC, result);
+
                 // Update flags
                 cpu->flags.zero = (cpu->registers[inst.regC] == 0);
                 cpu->flags.carry = false;  // NOR doesn't affect carry
@@ -95,7 +112,9 @@ void execute(CPU *cpu, Instruction inst) {
         case OPCODE_AND:
             // Bitwise AND: regC = regA & regB
             {
-                cpu->registers[inst.regC] = cpu->registers[inst.regA] & cpu->registers[inst.regB];
+                uint8_t result = read(cpu, inst.regA) & read(cpu, inst.regB);
+                write(cpu, inst.regC, result);
+
                 // Update flags
                 cpu->flags.zero = (cpu->registers[inst.regC] == 0);
                 cpu->flags.carry = false;  // AND doesn't affect carry
@@ -107,7 +126,9 @@ void execute(CPU *cpu, Instruction inst) {
         case OPCODE_XOR:
             {
                 // Bitwise XOR: regC = regA ^ regB
-                cpu->registers[inst.regC] = cpu->registers[inst.regA] ^ cpu->registers[inst.regB];
+                uint8_t result = read(cpu, inst.regA) ^ read(cpu, inst.regB);
+                write(cpu, inst.regC, result);
+
                 // Update flags
                 cpu->flags.zero = (cpu->registers[inst.regC] == 0);
                 cpu->flags.carry = false;  // XOR doesn't affect carry
@@ -119,7 +140,9 @@ void execute(CPU *cpu, Instruction inst) {
         case OPCODE_RSH:
             {
                 // Right Shift: regC = regA >> 1 (shift A by 1 position)
-                cpu->registers[inst.regC] = cpu->registers[inst.regA] >> 1;
+                uint8_t result = read(cpu, inst.regA) >> 1;
+                write(cpu, inst.regC, result);
+
                 // Update flags
                 cpu->flags.zero = (cpu->registers[inst.regC] == 0);
                 cpu->flags.carry = (cpu->registers[inst.regA] & 0x01);  // Carry is the last bit shifted out
@@ -131,7 +154,8 @@ void execute(CPU *cpu, Instruction inst) {
         case OPCODE_LDI:
             {
                 // Load Immediate: regA = imm
-                cpu->registers[inst.regA] = inst.imm;
+                write(cpu, inst.regA, inst.imm);
+
                 // Update flags
                 cpu->flags.zero = false; // Load immediate doesn't affect zero
                 cpu->flags.carry = false;  // Load immediate doesn't affect carry
@@ -143,8 +167,9 @@ void execute(CPU *cpu, Instruction inst) {
         case OPCODE_ADI:
             // Add Immediate: regA = regA + imm
             {
-                uint16_t result = cpu->registers[inst.regA] + inst.imm;
-                cpu->registers[inst.regA] = (uint8_t)result;
+                uint16_t result = read(cpu, inst.regA) + inst.imm;
+                write(cpu, inst.regA, (uint8_t)result);
+
                 // Update flags
                 cpu->flags.zero = (cpu->registers[inst.regA] == 0);
                 cpu->flags.carry = (result > 0xFF);  // Carry flag if overflow
@@ -208,14 +233,14 @@ void execute(CPU *cpu, Instruction inst) {
 
         case OPCODE_CAL:
             // Push the current program counter (PC) onto the stack
-            push(cpu, cpu->program_counter);
+            push_stack(cpu, cpu->program_counter);
             // Set the program counter to the target address (function call)
             cpu->program_counter = inst.imm;
             break;
 
         case OPCODE_RET:
             // Pop the return address from the stack add one and set it to the program counter
-            cpu->program_counter = pop(cpu)+1;
+            cpu->program_counter = pop_stack(cpu);
             break;
 
         default:
@@ -284,7 +309,7 @@ void load_program(const char *filename, CPU *cpu) {
 void print_registers(CPU *cpu) {
     printf("Registers:\n");
     for (int i = 0; i < 16; i++) {
-        printf("R%d: %d\n", i, cpu->registers[i]);  // Print register value in decimal
+        printf("R%d: %d\n", i, read(cpu, i));  // Print register value in decimal
     }
 }
 

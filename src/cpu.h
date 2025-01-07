@@ -59,10 +59,17 @@ typedef struct {
     uint8_t stack_pointer;              // Points to the top of the stack
 } CPU;
 
-void push(CPU *cpu, uint16_t value);
-uint16_t pop(CPU *cpu);
+void push_stack(CPU *cpu, uint16_t value);
+uint16_t pop_stack(CPU *cpu);
+
+// Write value into a register
+void write(CPU *cpu, uint8_t index, uint8_t value);
+// Read value from register
+uint8_t read(CPU *cpu, uint8_t index);
+
 Instruction decode_instruction(uint16_t raw_instruction);
 void execute(CPU *cpu, Instruction inst);
+
 void run(CPU *cpu);
 void load_program(const char *filename, CPU *cpu);
 
