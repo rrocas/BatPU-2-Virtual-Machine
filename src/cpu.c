@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "cpu.h"
+#include "include/cpu.h"
 
 // Push instruction memory address into the call stack
 void push_stack(CPU *cpu, uint16_t value) {
