@@ -28,8 +28,11 @@ uint16_t pop_stack(CPU *cpu) {
 
 // Write value into a register
 void write(CPU *cpu, uint8_t index, uint8_t value) {
-    index &= 0x0F; // Make sure index doesn't exceed 4 bits (16 total addresses)
-    cpu->registers[index] = value; // Asing value to the register
+    // Make sure r0 is a zero register
+    if(index != 0) {
+        index &= 0x0F; // Make sure index doesn't exceed 4 bits (16 total addresses)
+        cpu->registers[index] = value; // Asing value to the register
+    }
 }
 
 // Read value from register
@@ -56,7 +59,6 @@ Instruction decode_instruction(uint16_t raw_instruction) {
 }
 
 void execute(CPU *cpu, Instruction inst) {
-    cpu->registers[0] = 0;
     switch (inst.opcode) {
         case OPCODE_NOP:
             // No operation: do nothing
@@ -247,7 +249,6 @@ void execute(CPU *cpu, Instruction inst) {
             // Invalid opcode, handle error if necessary
             break;
     }
-    cpu->registers[0] = 0;
 }
 
 void run(CPU *cpu){
